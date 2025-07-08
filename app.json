@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "temp-expo",
-    "slug": "temp-expo",
+    "name": "marketing-crm-app",
+    "slug": "marketing-crm-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,6 +24,11 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "634816b4-255a-4e71-b58d-73912cbcca1b"
+      }
     }
   }
 }
