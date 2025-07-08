@@ -1,0 +1,283 @@
+The search results confirm the standard structure and content of a comprehensive PRD that caters to both technical and non-technical stakeholders. Key takeaways for clarity and effectiveness include:
+Clear Purpose & Vision: Start with "why" (problem, value prop, goals).
+Target Audience/Personas: Detail who the users are, their needs, and pain points.
+Prioritized Features: Outline "what" the product will do, categorizing must-haves vs. nice-to-haves.
+Non-Functional Requirements: Cover "how" it will perform (security, scalability, UX/UI, etc.).
+Use Cases/User Stories: Illustrate "how" users will interact.
+Technical Specifications (high-level): Mention the chosen stack.
+Success Metrics: Define how success will be measured.
+Timeline/Milestones: Provide a high-level roadmap.
+Assumptions, Constraints, Risks: Acknowledge potential blockers.
+Living Document: Emphasize that it's iterative and collaborative.
+Concise & Accessible Language: Avoid excessive jargon, use clear headings, bullet points, and visuals (or links to them).
+I have all the necessary information to construct the PRD now, incorporating the research findings and the user's specified tech stack.
+Here is a detailed Product Requirements Document (PRD) for your Marketing Agency CRM application, presented in Markdown format. This document is designed to be clear and easy to understand for both your development team and business stakeholders, incorporating all our research on best practices, features, and your chosen technology stack.
+
+Product Requirements Document: Marketing Agency CRM App
+Document Version: 1.0.0
+Date: July 8, 2025
+Product Manager: [Your Name/Team]
+Project Status: Discovery & Planning
+
+1. Introduction
+1.1. Purpose
+The purpose of this document is to outline the requirements for a cross-platform CRM (Client Relationship Management) application for a marketing agency. This application aims to centralize client interactions, streamline task management, enhance internal team collaboration, and improve client accountability, ultimately boosting efficiency and client satisfaction.
+1.2. Vision
+To create a powerful, intuitive, and seamlessly integrated CRM application that serves as the central hub for all client-facing and internal operational activities within the marketing agency, empowering employees and clients alike to collaborate effectively and achieve marketing goals.
+1.3. Goals
+Improve Client Communication (KPI: 25% reduction in client communication response time): Provide a single, consistent channel for agency-client communication, reducing reliance on fragmented email threads and external messaging apps.
+Increase Client Deliverable Adherence (KPI: 20% increase in timely client asset/information delivery): Implement robust notification and reminder systems to prompt clients for their required inputs and approvals.
+Enhance Internal Collaboration (KPI: 15% improvement in cross-departmental task completion rates): Facilitate efficient workflow and communication among different agency departments, ensuring everyone is aligned on client projects.
+Boost Operational Efficiency (KPI: 10% reduction in time spent on administrative tasks per project): Automate routine tasks and centralize information, freeing up agency staff for more strategic work.
+Provide Clear Oversight (KPI: All client-related tasks visible and traceable): Offer clear visibility into client-specific to-do lists and project statuses for both internal teams and clients.
+1.4. Target Audience
+Primary Users (Marketing Agency Employees): Account Managers, Project Managers, Designers, Developers, Content Creators, Sales Team, Management.
+Secondary Users (Clients): Business Owners, Marketing Managers, Key Stakeholders from client organizations who need to provide input, review, or approve deliverables.
+
+2. Scope
+2.1. In-Scope Features (Minimum Viable Product - MVP)
+The initial release (MVP) of the Marketing Agency CRM App will focus on establishing core functionalities to address the most pressing communication and task management challenges.
+Client Management:
+Ability to add, edit, view, and delete client profiles.
+Client profiles will include essential contact information, industry, status, and general notes.
+Client-Specific Task Management:
+Create, view, edit, and delete tasks associated with specific clients/projects.
+Assign tasks internally to agency employees.
+Assign/Delegate tasks to clients (with clear "Awaiting Client" status).
+Set task due dates and priorities.
+Track task status (To Do, In Progress, Awaiting Client, Done).
+Ability to attach notes and basic files to tasks.
+Communication & Collaboration:
+Internal Team Chat: A general chat channel for agency-wide announcements and quick discussions.
+Client-Specific Chat: Dedicated chat threads within each client's profile for agency teams working on that client.
+Client Portal Messaging: Clients can send messages directly to their assigned agency team through the portal.
+Client Portal:
+Secure login for clients.
+Dashboard view showing their active projects and tasks awaiting their action.
+Ability to view and update the status of tasks assigned to them.
+Ability to upload/download files shared by the agency.
+Direct messaging with the agency team.
+Notifications & Reminders:
+Automated email/push notifications for internal teams on new task assignments, task status changes, or new client messages.
+Automated email/push notifications for clients on new tasks assigned to them, upcoming task deadlines, and new messages from the agency.
+Basic Reporting & Activity Logs:
+View recent activity related to clients (e.g., tasks created, messages sent).
+Simple overview of tasks by status (e.g., how many "Awaiting Client" tasks).
+2.2. Out-of-Scope Features (for Future Phases)
+The following features are acknowledged as valuable but will be considered for post-MVP releases to maintain focus for the initial launch:
+Lead Management & Sales Pipeline
+Advanced Project Management (Gantt charts, resource allocation, complex dependencies)
+Time Tracking & Invoicing Integration
+Automated Client Onboarding & Nurturing Workflows
+Detailed Performance Analytics & Customizable Dashboards
+AI-Powered Insights (e.g., sentiment analysis on client comms, automated content generation drafts)
+Integration with external marketing tools (e.g., Mailchimp, HubSpot, social media platforms)
+Complex User Roles & Permissions (beyond basic employee/client)
+Public-facing agency website integration (beyond the client portal)
+
+3. User Personas & Use Cases
+3.1. Marketing Agency Employee (e.g., Account Manager - "Alex")
+Persona: Alex is an Account Manager at the agency. He manages 5-7 active clients, juggling multiple projects for each. He needs to stay on top of all client communications, ensure tasks are moving forward, and collaborate seamlessly with designers, writers, and ad specialists. He's often frustrated by clients missing deadlines or losing track of requests sent via email.
+Goals:
+Streamline client communication to a single platform.
+Track client tasks and easily remind them of pending items.
+Quickly delegate tasks to internal team members.
+Have a clear overview of all client projects and their status.
+Use Cases:
+UC 3.1.1: Add New Client & Project: Alex onboards a new client, creates their profile, and sets up a new project within the CRM, assigning the initial team.
+UC 3.1.2: Assign Task to Client: Alex creates a task for a client (e.g., "Provide Brand Guidelines") and assigns it to the client through the CRM, expecting a notification to be sent. He then checks the status periodically.
+UC 3.1.3: Collaborate Internally on Client Project: Alex needs a designer (Sarah) to create mockups for Client X. He assigns a task to Sarah and uses the client's internal chat to discuss design direction with her and other team members.
+UC 3.1.4: Respond to Client Inquiry: A client messages Alex through the portal asking for a project update. Alex sees the notification, reviews the project status in the CRM, and responds directly in the client portal.
+UC 3.1.5: Upload/Share Files with Client: Alex uploads a campaign brief for Client Y to their client portal for review and approval.
+3.2. Client (e.g., Business Owner - "Brenda")
+Persona: Brenda owns a small e-commerce business and has hired the marketing agency. She's busy running her company and often misses emails or forgets to provide assets requested by the agency. She needs a simple, clear way to see what's expected of her and to quickly provide information or approvals.
+Goals:
+Have one central place to communicate with the agency.
+Clearly see what tasks/information the agency needs from her.
+Receive timely reminders for action items.
+Easily upload requested files.
+Use Cases:
+UC 3.2.1: View Pending Tasks: Brenda logs into the client portal and immediately sees a list of "Awaiting Your Action" tasks from the agency.
+UC 3.2.2: Upload Requested Document: Brenda sees a task requesting her logo files. She clicks on the task, uploads the file, and marks the task as complete.
+UC 3.2.3: Message Agency Team: Brenda has a quick question about a report. She logs into the portal and sends a message to Alex and his team.
+UC 3.2.4: Receive Task Notification: Brenda receives a push notification and email reminder that a "Website Content Review" task is due soon.
+
+4. Functional Requirements
+4.1. Client Management
+FR 4.1.1: Client Creation/Editing: Users (agency employees) shall be able to create new client profiles, and edit existing client details (name, contact person, email, phone, industry, notes).
+FR 4.1.2: Client Deletion: Users shall be able to delete client profiles. A confirmation modal will be required to prevent accidental deletion, with a warning about associated data loss.
+FR 4.1.3: Client Listing: Users shall view a paginated/scrollable list of all clients, sortable by name and last activity.
+FR 4.1.4: Client Search: Users shall be able to search clients by name or contact person.
+FR 4.1.5: Client Profile View: When a client is selected, users shall see a dedicated profile page displaying their details, associated tasks, and communication history.
+4.2. Task Management (To-Do Lists)
+FR 4.2.1: Task Creation: Users (agency employees) shall be able to create new tasks within a specific client's profile, providing a title, description, due date, and priority (High, Medium, Low).
+FR 4.2.2: Task Assignment (Internal): Users shall be able to assign tasks to one or more internal agency employees.
+FR 4.2.3: Task Delegation (to Client): Users shall be able to delegate tasks to a specific client. This task will appear in the client's portal dashboard.
+FR 4.2.4: Task Status Update: Users (agency employees and clients, for their assigned tasks) shall be able to update a task's status (To Do, In Progress, Awaiting Client, Done).
+FR 4.2.5: Task Editing/Deletion: Users (agency employees) shall be able to edit task details or delete tasks.
+FR 4.2.6: Task Filtering/Sorting: Users shall be able to filter tasks by status, assignee, or due date.
+FR 4.2.7: Task Notes & Attachments: Users shall be able to add notes/comments to tasks and attach files (e.g., documents, images).
+4.3. Communication & Collaboration
+FR 4.3.1: Internal General Chat: Agency employees shall have access to a real-time general chat channel for agency-wide announcements.
+FR 4.3.2: Client-Specific Internal Chat: Agency employees shall have a dedicated real-time chat channel within each client's profile for team collaboration related to that client.
+FR 4.3.3: Client Portal Messaging: Clients shall be able to send real-time text messages to their assigned agency team through the client portal. Agency employees can respond from the client's profile.
+FR 4.3.4: File Sharing (Internal): Agency employees shall be able to upload and share files within internal chat channels and tasks.
+FR 4.3.5: File Sharing (Client Portal): Agency employees shall be able to upload files to a dedicated section within the client's portal or attach them to client-assigned tasks. Clients can download these files. Clients can also upload files in response to delegated tasks or general messages.
+4.4. Client Portal
+FR 4.4.1: Secure Client Login: Clients shall be able to log in to the portal securely using their email and a password.
+FR 4.4.2: Client Dashboard: Upon login, clients shall see a dashboard summarizing their active projects, tasks "Awaiting Their Action," and recent communications.
+FR 4.4.3: View Delegated Tasks: Clients shall be able to view details of tasks delegated to them, including descriptions, due dates, and any attached files.
+FR 4.4.4: Update Client-Assigned Task Status: Clients shall be able to update the status of tasks assigned to them (e.g., from "Awaiting Client" to "Done").
+FR 4.4.5: File Upload (Client): Clients shall be able to upload files directly within delegated tasks or via general messages/file sharing sections.
+FR 4.4.6: Client-Agency Messaging Interface: Clients shall have a chat interface to send and receive messages from their agency team.
+4.5. Reporting & Basic Analytics
+FR 4.5.1: Activity Feed: A chronological feed of recent activities across all clients (e.g., "Client X task updated," "New message from Client Y").
+FR 4.5.2: Task Status Overview: A summary view showing the count of tasks by status (e.g., total "To Do", "In Progress", "Awaiting Client", "Done").
+FR 4.5.3: Client Progress Snapshot: A high-level view of each client's overall task completion percentage or project phase.
+
+5. Non-Functional Requirements
+5.1. Performance
+Response Time:
+Application screens should load within 2-3 seconds on average under normal network conditions.
+Real-time chat messages should appear within 500ms.
+Task updates and creations should reflect within 1 second.
+Concurrency: The system should support up to 50 concurrent agency users and 200 concurrent client users without significant performance degradation.
+File Upload/Download Speed: Files under 5MB should upload/download within 5 seconds on a stable broadband connection.
+5.2. Scalability
+The architecture should be capable of supporting growth to hundreds of clients and thousands of tasks without requiring a complete re-architecture.
+Database (Supabase/PostgreSQL) should be configured for vertical and horizontal scaling as needed.
+Backend workflows (n8n) should handle increasing numbers of automated processes.
+5.3. Security & Data Privacy
+Authentication:
+Secure user authentication for both agency employees and clients (Supabase Auth).
+Implement Multi-Factor Authentication (MFA) as an option for agency users to enhance security.
+Password policies requiring strong, unique passwords.
+Authorization (Role-Based Access Control - RBAC):
+Agency employees: Full access to all agency-side features, client data.
+Clients: Limited access only to their specific client portal data and delegated tasks/communication.
+Data should be logically segmented so clients cannot view other clients' information.
+Data Encryption:
+All data in transit (between client app and Supabase/n8n) must be encrypted using TLS/SSL (HTTPS).
+Data at rest in Supabase should be encrypted (PostgreSQL handles this).
+Data Privacy Compliance:
+Design with GDPR principles in mind, particularly for client data (data minimization, purpose limitation, data subject rights).
+Ensure consent mechanisms where applicable for client data usage.
+Vulnerability Management:
+Regular security audits and penetration testing.
+Keep all dependencies and libraries updated to address known vulnerabilities.
+Backup & Recovery:
+Regular automated backups of the Supabase database.
+Defined disaster recovery plan to minimize data loss and downtime.
+5.4. Usability & User Experience (UX/UI Best Practices)
+Simplicity & Clarity:
+Clean, uncluttered interface.
+Intuitive navigation with clear labels and consistent terminology.
+Minimize clicks for common actions (e.g., updating task status, sending a message).
+Use ample white space to improve readability.
+Consistency:
+Consistent visual design, component placement, and interaction patterns across all platforms (iOS, Android, Web).
+Consistent feedback mechanisms (loading indicators, success messages, error messages).
+Information Prioritization:
+Dashboards and primary views should highlight the most critical information first (e.g., urgent tasks, new messages, tasks awaiting client action).
+Logical grouping of related information.
+Feedback & Micro-interactions:
+Provide immediate visual feedback for user actions (e.g., button presses, form submissions).
+Use subtle animations to guide user attention and enhance engagement.
+Mobile Optimization:
+The React Native application must be fully responsive and optimized for both mobile (iOS, Android) and web interfaces, with touch-friendly controls and legible text sizes.
+Prioritize key functionality for mobile access.
+Accessibility:
+Follow WCAG guidelines where feasible (e.g., sufficient color contrast, keyboard navigation, clear focus states).
+Provide alternative text for images.
+Error Handling:
+Clear, user-friendly error messages that explain the problem and suggest a solution.
+Preventative measures where possible (e.g., input validation).
+5.5. Maintainability
+Code Quality: Adhere to best coding practices, clean code principles, and comprehensive documentation.
+Modularity: Design components and services to be modular and loosely coupled to facilitate future enhancements and bug fixes.
+Automated Testing: Implement unit, integration, and end-to-end tests to ensure code quality and prevent regressions.
+5.6. Accessibility
+Ensure the application is usable by individuals with disabilities where reasonably practicable, adhering to industry standards.
+
+6. Technical Architecture & Stack
+The application will leverage a modern, scalable, and real-time capable technology stack.
+6.1. Frontend: React Native
+Framework: React Native, ideally with Expo for streamlined development, over-the-air updates, and simplified build processes.
+Platforms: iOS, Android, and Web (using Expo Web).
+Reasoning: Enables cross-platform development with a single codebase, accelerating development time and ensuring consistent UI/UX across devices. Provides a native-like experience.
+6.2. Backend: n8n
+Role: Acts as the primary backend orchestration layer for business logic, workflow automation, and integrations.
+Key Uses:
+API Endpoints: Expose RESTful APIs for the React Native frontend to interact with (e.g., for CRUD operations on clients, tasks, messages).
+Workflow Automation: Automate task reminders, client notifications (email, push), data synchronization, and potential future integrations with external services.
+Data Processing: Perform any complex data transformations or validations before writing to Supabase.
+AI Integration Orchestration: Connect to external AI APIs (e.g., for sentiment analysis on messages, content generation assistance) and process their outputs.
+Reasoning: Visual workflow builder allows for rapid development of complex logic and integrations without extensive custom coding. Highly extensible.
+6.3. Database: Supabase
+Core Database: PostgreSQL.
+Key Features Utilized:
+Postgres Database: Robust, reliable, and feature-rich relational database for storing all client data, tasks, messages, user profiles, and file metadata.
+Supabase Auth: Handles user authentication (email/password, potentially social logins in future phases) for both agency employees and clients.
+Supabase Realtime: Provides real-time subscriptions for immediate updates in the UI (e.g., new chat messages, live task status changes).
+Supabase Storage: Securely stores uploaded files (e.g., client assets, project documents).
+Supabase Edge Functions: Lightweight, scalable serverless functions (written in TypeScript/JavaScript) for specific server-side logic, data transformations, or webhooks triggered by database events.
+Reasoning: Offers a comprehensive backend-as-a-service solution with real-time capabilities, robust authentication, and storage, all built on top of a powerful PostgreSQL database, minimizing backend infrastructure management.
+6.4. Key Integrations (via n8n and Supabase)
+Push Notification Service:
+Provider: Expo Push Notification Service (if using Expo) or Firebase Cloud Messaging (FCM) / Apple Push Notification Service (APNs) directly.
+Integration: n8n workflows triggered by Supabase Webhooks (e.g., on tasks table updates) will send push notifications via the chosen service.
+Email Service:
+Provider: SendGrid, Mailgun, or similar transactional email service.
+Integration: n8n workflows will integrate with this service to send email notifications and reminders to clients and internal teams.
+AI Services (Future Consideration):
+Provider: OpenAI (for GPT models), Google AI (for Gemini models), or specialized AI APIs.
+Integration: n8n will serve as the middleware, calling these AI APIs based on specific triggers and feeding data from/to Supabase.
+Dedicated Chat SDK/API (Future Consideration):
+Provider: Stream Chat, Sendbird (for more advanced chat features like read receipts, complex presence, large-scale chat history).
+Integration: While Supabase Realtime can handle basic chat, a specialized SDK might be integrated with the React Native app for a richer, more robust chat experience if basic real-time messaging proves insufficient. n8n could potentially orchestrate some aspects of this integration.
+
+7. Future Considerations / Phase 2+ Features
+As the application matures, the following features are planned for subsequent phases to further enhance its power and utility:
+Advanced CRM Features:
+Lead Management: Tools to track and manage prospective clients before they become active.
+Sales Pipeline Management: Visual boards for managing sales stages and opportunities.
+Automated Workflows:
+Client Onboarding Automation: Automated sequence of tasks and communications for new clients.
+Post-Project Feedback: Automated surveys or check-ins after project completion.
+Time Tracking & Invoicing:
+Integrated time tracking for agency employees on client projects.
+Generation of invoices based on tracked time and project agreements, potentially integrating with accounting software (e.g., QuickBooks, Xero).
+Comprehensive Reporting & Predictive Analytics:
+Customizable dashboards for key performance indicators (KPIs) like client project status, team workload, task completion rates, and client satisfaction.
+AI-driven insights: Predictive analytics for client churn, project delays, or optimal resource allocation.
+Full Project Management:
+Gantt charts and Kanban boards for visual project planning and tracking.
+Resource allocation tools to manage team capacity.
+Complex task dependencies.
+Social Media Integration:
+Monitoring client mentions and brand sentiment across social media platforms.
+Scheduling and publishing content to client social media accounts (via agency tools).
+AI-Powered Enhancements:
+Automated Content Generation: AI assistance for drafting marketing copy, email snippets, or social media posts directly within client profiles.
+Sentiment Analysis: Automatically analyze client communication for sentiment to proactively address concerns.
+Smart Task Suggestions: AI suggesting next steps or tasks based on project type or client activity.
+
+8. Appendix
+8.1. Glossary
+CRM: Client Relationship Management
+PRD: Product Requirements Document
+MVP: Minimum Viable Product
+UI: User Interface
+UX: User Experience
+KPI: Key Performance Indicator
+RBAC: Role-Based Access Control
+MFA: Multi-Factor Authentication
+TLS/SSL: Transport Layer Security / Secure Sockets Layer (for encryption)
+GDPR: General Data Protection Regulation
+FCM: Firebase Cloud Messaging
+APNs: Apple Push Notification Service
+PostgreSQL: An open-source relational database management system.
+React Native: An open-source UI software framework for building native mobile applications and web apps.
+n8n: A workflow automation tool with a visual interface, enabling integration between various applications and services.
+Supabase: An open-source Firebase alternative providing a PostgreSQL database, authentication, real-time subscriptions, and storage.
+
