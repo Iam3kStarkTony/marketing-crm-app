@@ -1,0 +1,723 @@
+{
+  "name": "CRM - Communication Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "communication",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "rawBody": false
+        }
+      },
+      "credentials": {
+        "headerAuth": {
+          "id": "HEADER_AUTH_CREDENTIAL_ID",
+          "name": "CRM-Webhook-Auth"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Communication",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "communication-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "email_campaign",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-email-campaign",
+      "name": "Is Email Campaign?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "follow_up",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-follow-up",
+      "name": "Is Follow-up?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "direct_message",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-direct-message",
+      "name": "Is Direct Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "clients",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": [
+          {
+            "column": "status",
+            "value": "={{ $json.target_status || 'active' }}"
+          }
+        ],
+        "options": {}
+      },
+      "id": "get-campaign-recipients",
+      "name": "Get Campaign Recipients",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-recipients",
+      "name": "Split Recipients",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [900, 100]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $('Webhook - Communication').item.json.subject }}",
+        "emailType": "html",
+        "message": "={{ $('Webhook - Communication').item.json.message.replace('{{client_name}}', $json.name) }}",
+        "options": {}
+      },
+      "id": "send-campaign-email",
+      "name": "Send Campaign Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1120, 100],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "messages",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "client_id": "={{ $json.id }}",
+            "sender_id": "={{ $('Webhook - Communication').item.json.sender_id }}",
+            "content": "={{ $('Webhook - Communication').item.json.message }}",
+            "message_type": "email",
+            "direction": "outbound",
+            "subject": "={{ $('Webhook - Communication').item.json.subject }}",
+            "status": "sent"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-campaign-message",
+      "name": "Log Campaign Message",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1340, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "clients",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": [
+          {
+            "column": "id",
+            "value": "={{ $json.client_id }}"
+          }
+        ],
+        "options": {}
+      },
+      "id": "get-followup-client",
+      "name": "Get Follow-up Client",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "messages",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": [
+          {
+            "column": "client_id",
+            "value": "={{ $json.client_id }}"
+          }
+        ],
+        "options": {
+          "sort": {
+            "fields": [
+              {
+                "field": "created_at",
+                "direction": "desc"
+              }
+            ]
+          },
+          "limit": 1
+        }
+      },
+      "id": "get-last-message",
+      "name": "Get Last Message",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $now.diff(DateTime.fromISO($json.created_at), 'days').days }}",
+              "rightValue": "={{ $('Webhook - Communication').item.json.follow_up_days || 7 }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-followup-time",
+      "name": "Time for Follow-up?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get Follow-up Client').item.json.email }}",
+        "subject": "={{ $('Webhook - Communication').item.json.subject || 'Following up on our conversation' }}",
+        "emailType": "html",
+        "message": "=`<h2>Hello ${$('Get Follow-up Client').item.json.name}!</h2>\n<p>${$('Webhook - Communication').item.json.message || 'I wanted to follow up on our previous conversation and see if you have any questions or if there\\'s anything else I can help you with.'}</p>\n<p>Please don\\'t hesitate to reach out if you need any assistance.</p>\n<p>Best regards,<br>The Marketing Team</p>`",
+        "options": {}
+      },
+      "id": "send-followup-email",
+      "name": "Send Follow-up Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1340, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "messages",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "client_id": "={{ $('Get Follow-up Client').item.json.id }}",
+            "sender_id": "={{ $('Webhook - Communication').item.json.sender_id }}",
+            "content": "={{ $('Webhook - Communication').item.json.message || 'Follow-up email sent' }}",
+            "message_type": "email",
+            "direction": "outbound",
+            "subject": "={{ $('Webhook - Communication').item.json.subject || 'Following up on our conversation' }}",
+            "status": "sent"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-followup-message",
+      "name": "Log Follow-up Message",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1560, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "clients",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": [
+          {
+            "column": "id",
+            "value": "={{ $json.client_id }}"
+          }
+        ],
+        "options": {}
+      },
+      "id": "get-direct-client",
+      "name": "Get Direct Message Client",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 500],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $('Webhook - Communication').item.json.subject }}",
+        "emailType": "html",
+        "message": "={{ $('Webhook - Communication').item.json.message.replace('{{client_name}}', $json.name) }}",
+        "options": {}
+      },
+      "id": "send-direct-email",
+      "name": "Send Direct Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [900, 500],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "messages",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "client_id": "={{ $('Get Direct Message Client').item.json.id }}",
+            "sender_id": "={{ $('Webhook - Communication').item.json.sender_id }}",
+            "content": "={{ $('Webhook - Communication').item.json.message }}",
+            "message_type": "email",
+            "direction": "outbound",
+            "subject": "={{ $('Webhook - Communication').item.json.subject }}",
+            "status": "sent"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "log-direct-message",
+      "name": "Log Direct Message",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1120, 500],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Communication sent successfully\",\n  \"type\": \"{{ $('Webhook - Communication').item.json.type }}\",\n  \"recipients\": \"{{ $('Webhook - Communication').item.json.type === 'email_campaign' ? $('Get Campaign Recipients').all().length : 1 }}\"\n}",
+        "options": {}
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"error\": \"Invalid communication type\",\n  \"message\": \"Type must be 'email_campaign', 'follow_up', or 'direct_message'\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 800]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"message\": \"Follow-up not needed yet\",\n  \"days_since_last_message\": \"{{ $now.diff(DateTime.fromISO($('Get Last Message').item.json.created_at), 'days').days }}\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "followup-not-needed",
+      "name": "Follow-up Not Needed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1340, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Communication": {
+      "main": [
+        [
+          {
+            "node": "Is Email Campaign?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Follow-up?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Direct Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Email Campaign?": {
+      "main": [
+        [
+          {
+            "node": "Get Campaign Recipients",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Follow-up?": {
+      "main": [
+        [
+          {
+            "node": "Get Follow-up Client",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Direct Message?": {
+      "main": [
+        [
+          {
+            "node": "Get Direct Message Client",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Campaign Recipients": {
+      "main": [
+        [
+          {
+            "node": "Split Recipients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Recipients": {
+      "main": [
+        [
+          {
+            "node": "Send Campaign Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Campaign Email": {
+      "main": [
+        [
+          {
+            "node": "Log Campaign Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Campaign Message": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Follow-up Client": {
+      "main": [
+        [
+          {
+            "node": "Get Last Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Last Message": {
+      "main": [
+        [
+          {
+            "node": "Time for Follow-up?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Time for Follow-up?": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-up Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow-up Not Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Follow-up Email": {
+      "main": [
+        [
+          {
+            "node": "Log Follow-up Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Follow-up Message": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Direct Message Client": {
+      "main": [
+        [
+          {
+            "node": "Send Direct Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Direct Email": {
+      "main": [
+        [
+          {
+            "node": "Log Direct Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Direct Message": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-31T12:00:00.000Z",
+      "updatedAt": "2024-12-31T12:00:00.000Z",
+      "id": "crm-workflows",
+      "name": "CRM Workflows"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-31T12:00:00.000Z",
+  "versionId": "1"
+}

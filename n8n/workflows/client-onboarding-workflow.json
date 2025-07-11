@@ -1,0 +1,313 @@
+{
+  "name": "CRM - Client Onboarding Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "client-onboarding",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "rawBody": false
+        }
+      },
+      "credentials": {
+        "headerAuth": {
+          "id": "HEADER_AUTH_CREDENTIAL_ID",
+          "name": "CRM-Webhook-Auth"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Client Registration",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "client-onboarding-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "regex",
+                "rightValue": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "data-validation",
+      "name": "Validate Client Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "clients",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "={{ $json.name }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone || null }}",
+            "company": "={{ $json.company || null }}",
+            "address": "={{ $json.address || null }}",
+            "status": "prospect",
+            "notes": "={{ $json.notes || 'New client registered via webhook' }}",
+            "assigned_agent_id": null
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "insert-client",
+      "name": "Insert Client to Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "tasks",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "Complete Client Onboarding",
+            "description": "=Welcome new client {{ $('Insert Client to Supabase').item.json.name }} and complete onboarding process",
+            "status": "pending",
+            "priority": "high",
+            "client_id": "={{ $('Insert Client to Supabase').item.json.id }}",
+            "assigned_to": null,
+            "due_date": "={{ $now.plus({days: 3}).toISO() }}",
+            "created_by": null
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "create-onboarding-task",
+      "name": "Create Onboarding Task",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [900, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Insert Client to Supabase').item.json.email }}",
+        "subject": "Welcome to Our Marketing Agency!",
+        "emailType": "html",
+        "message": "=<h2>Welcome {{ $('Insert Client to Supabase').item.json.name }}!</h2>\n<p>Thank you for choosing our marketing agency. We're excited to work with you!</p>\n<p>Your account has been set up and our team will be in touch within the next 24 hours to discuss your marketing needs.</p>\n<p>If you have any immediate questions, please don't hesitate to reach out.</p>\n<p>Best regards,<br>The Marketing Team</p>",
+        "options": {}
+      },
+      "id": "send-welcome-email",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1120, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "notifications",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "type": "client_registered",
+            "title": "New Client Registered",
+            "message": "=New client {{ $('Insert Client to Supabase').item.json.name }} has been registered and needs onboarding",
+            "recipient_id": "={{ $json.assigned_to && $json.assigned_to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) ? $json.assigned_to : null }}",
+            "data": "={{ JSON.stringify({client_id: $('Insert Client to Supabase').item.json.id, client_name: $('Insert Client to Supabase').item.json.name}) }}",
+            "is_read": false
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "notify-staff",
+      "name": "Notify Assigned Staff",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1340, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Client onboarding initiated successfully\",\n  \"client_id\": \"{{ $('Insert Client to Supabase').item.json.id }}\",\n  \"task_id\": \"{{ $('Create Onboarding Task').item.json.id }}\"\n}",
+        "options": {}
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"error\": \"Invalid client data provided\",\n  \"message\": \"Please provide valid name and email address\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Client Registration": {
+      "main": [
+        [
+          {
+            "node": "Validate Client Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Client Data": {
+      "main": [
+        [
+          {
+            "node": "Insert Client to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Client to Supabase": {
+      "main": [
+        [
+          {
+            "node": "Create Onboarding Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Onboarding Task": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Notify Assigned Staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Assigned Staff": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-31T12:00:00.000Z",
+      "updatedAt": "2024-12-31T12:00:00.000Z",
+      "id": "crm-workflows",
+      "name": "CRM Workflows"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-31T12:00:00.000Z",
+  "versionId": "1"
+}

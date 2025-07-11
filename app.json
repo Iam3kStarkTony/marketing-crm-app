@@ -23,7 +23,13 @@
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#000000",
+      "vapidPublicKey": "BNyu9x_wfp4jkR9oqs74wP7fpHWoMI_4OI-Lt6jSl-RZzxcLCTmXUu75uXLOZ8n13ruOlpgy8wsK9w79ypdJTNc"
     },
     "extra": {
       "eas": {

@@ -1,0 +1,493 @@
+{
+  "name": "CRM - Reporting & Analytics Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reporting",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "rawBody": false
+        }
+      },
+      "credentials": {
+        "headerAuth": {
+          "id": "HEADER_AUTH_CREDENTIAL_ID",
+          "name": "CRM-Webhook-Auth"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Reporting",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "reporting-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.report_type }}",
+              "rightValue": "client_summary",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-client-summary",
+      "name": "Is Client Summary?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.report_type }}",
+              "rightValue": "task_analytics",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-task-analytics",
+      "name": "Is Task Analytics?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.report_type }}",
+              "rightValue": "communication_report",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-communication-report",
+      "name": "Is Communication Report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "clients",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "id": "get-all-clients",
+      "name": "Get All Clients",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate client statistics\nconst clients = $input.all();\nconst now = new Date();\nconst thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));\n\nconst stats = {\n  total_clients: clients.length,\n  active_clients: clients.filter(c => c.json.status === 'active').length,\n  prospect_clients: clients.filter(c => c.json.status === 'prospect').length,\n  inactive_clients: clients.filter(c => c.json.status === 'inactive').length,\n  new_clients_30_days: clients.filter(c => new Date(c.json.created_at) >= thirtyDaysAgo).length,\n  clients_by_status: {\n    active: clients.filter(c => c.json.status === 'active').length,\n    prospect: clients.filter(c => c.json.status === 'prospect').length,\n    inactive: clients.filter(c => c.json.status === 'inactive').length\n  },\n  report_generated_at: now.toISOString(),\n  report_type: 'client_summary'\n};\n\nreturn { json: stats };"
+      },
+      "id": "calculate-client-stats",
+      "name": "Calculate Client Statistics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 100]
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "tasks",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "id": "get-all-tasks",
+      "name": "Get All Tasks",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate task analytics\nconst tasks = $input.all();\nconst now = new Date();\nconst sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));\nconst thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));\n\nconst stats = {\n  total_tasks: tasks.length,\n  pending_tasks: tasks.filter(t => t.json.status === 'pending').length,\n  in_progress_tasks: tasks.filter(t => t.json.status === 'in_progress').length,\n  completed_tasks: tasks.filter(t => t.json.status === 'completed').length,\n  overdue_tasks: tasks.filter(t => {\n    if (!t.json.due_date) return false;\n    return new Date(t.json.due_date) < now && t.json.status !== 'completed';\n  }).length,\n  tasks_by_priority: {\n    high: tasks.filter(t => t.json.priority === 'high').length,\n    medium: tasks.filter(t => t.json.priority === 'medium').length,\n    low: tasks.filter(t => t.json.priority === 'low').length\n  },\n  tasks_by_status: {\n    pending: tasks.filter(t => t.json.status === 'pending').length,\n    in_progress: tasks.filter(t => t.json.status === 'in_progress').length,\n    completed: tasks.filter(t => t.json.status === 'completed').length\n  },\n  tasks_completed_7_days: tasks.filter(t => {\n    return t.json.status === 'completed' && \n           t.json.updated_at && \n           new Date(t.json.updated_at) >= sevenDaysAgo;\n  }).length,\n  tasks_completed_30_days: tasks.filter(t => {\n    return t.json.status === 'completed' && \n           t.json.updated_at && \n           new Date(t.json.updated_at) >= thirtyDaysAgo;\n  }).length,\n  average_completion_time: calculateAverageCompletionTime(tasks),\n  report_generated_at: now.toISOString(),\n  report_type: 'task_analytics'\n};\n\nfunction calculateAverageCompletionTime(tasks) {\n  const completedTasks = tasks.filter(t => t.json.status === 'completed' && t.json.created_at && t.json.updated_at);\n  if (completedTasks.length === 0) return 0;\n  \n  const totalTime = completedTasks.reduce((sum, task) => {\n    const created = new Date(task.json.created_at);\n    const completed = new Date(task.json.updated_at);\n    return sum + (completed - created);\n  }, 0);\n  \n  return Math.round(totalTime / completedTasks.length / (1000 * 60 * 60 * 24)); // Average days\n}\n\nreturn { json: stats };"
+      },
+      "id": "calculate-task-analytics",
+      "name": "Calculate Task Analytics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "resource": "rows",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "messages",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "id": "get-all-messages",
+      "name": "Get All Messages",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 500],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate communication statistics\nconst messages = $input.all();\nconst now = new Date();\nconst sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));\nconst thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));\n\nconst stats = {\n  total_messages: messages.length,\n  outbound_messages: messages.filter(m => m.json.direction === 'outbound').length,\n  inbound_messages: messages.filter(m => m.json.direction === 'inbound').length,\n  messages_by_type: {\n    email: messages.filter(m => m.json.message_type === 'email').length,\n    sms: messages.filter(m => m.json.message_type === 'sms').length,\n    call: messages.filter(m => m.json.message_type === 'call').length,\n    meeting: messages.filter(m => m.json.message_type === 'meeting').length\n  },\n  messages_by_status: {\n    sent: messages.filter(m => m.json.status === 'sent').length,\n    delivered: messages.filter(m => m.json.status === 'delivered').length,\n    read: messages.filter(m => m.json.status === 'read').length,\n    failed: messages.filter(m => m.json.status === 'failed').length\n  },\n  messages_7_days: messages.filter(m => {\n    return new Date(m.json.created_at) >= sevenDaysAgo;\n  }).length,\n  messages_30_days: messages.filter(m => {\n    return new Date(m.json.created_at) >= thirtyDaysAgo;\n  }).length,\n  unique_clients_contacted: [...new Set(messages.map(m => m.json.client_id))].length,\n  average_response_time: calculateAverageResponseTime(messages),\n  report_generated_at: now.toISOString(),\n  report_type: 'communication_report'\n};\n\nfunction calculateAverageResponseTime(messages) {\n  // Group messages by client and calculate response times\n  const clientMessages = {};\n  messages.forEach(msg => {\n    if (!clientMessages[msg.json.client_id]) {\n      clientMessages[msg.json.client_id] = [];\n    }\n    clientMessages[msg.json.client_id].push(msg);\n  });\n  \n  let totalResponseTime = 0;\n  let responseCount = 0;\n  \n  Object.values(clientMessages).forEach(clientMsgs => {\n    clientMsgs.sort((a, b) => new Date(a.json.created_at) - new Date(b.json.created_at));\n    \n    for (let i = 1; i < clientMsgs.length; i++) {\n      const prev = clientMsgs[i - 1];\n      const curr = clientMsgs[i];\n      \n      if (prev.json.direction === 'inbound' && curr.json.direction === 'outbound') {\n        const responseTime = new Date(curr.json.created_at) - new Date(prev.json.created_at);\n        totalResponseTime += responseTime;\n        responseCount++;\n      }\n    }\n  });\n  \n  return responseCount > 0 ? Math.round(totalResponseTime / responseCount / (1000 * 60 * 60)) : 0; // Average hours\n}\n\nreturn { json: stats };"
+      },
+      "id": "calculate-communication-stats",
+      "name": "Calculate Communication Stats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Webhook - Report Request').item.json.email_report }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-email-report",
+      "name": "Should Email Report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format report data for email\nconst reportData = $input.first().json;\nlet emailContent = '';\n\nif (reportData.report_type === 'client_summary') {\n  emailContent = `\n    <h2>Client Summary Report</h2>\n    <p><strong>Total Clients:</strong> ${reportData.total_clients}</p>\n    <p><strong>Active Clients:</strong> ${reportData.active_clients}</p>\n    <p><strong>Prospect Clients:</strong> ${reportData.prospect_clients}</p>\n    <p><strong>Inactive Clients:</strong> ${reportData.inactive_clients}</p>\n    <p><strong>New Clients (30 days):</strong> ${reportData.new_clients_30_days}</p>\n    <hr>\n    <h3>Clients by Status</h3>\n    <ul>\n      <li>Active: ${reportData.clients_by_status.active}</li>\n      <li>Prospect: ${reportData.clients_by_status.prospect}</li>\n      <li>Inactive: ${reportData.clients_by_status.inactive}</li>\n    </ul>\n  `;\n} else if (reportData.report_type === 'task_analytics') {\n  emailContent = `\n    <h2>Task Analytics Report</h2>\n    <p><strong>Total Tasks:</strong> ${reportData.total_tasks}</p>\n    <p><strong>Pending Tasks:</strong> ${reportData.pending_tasks}</p>\n    <p><strong>In Progress Tasks:</strong> ${reportData.in_progress_tasks}</p>\n    <p><strong>Completed Tasks:</strong> ${reportData.completed_tasks}</p>\n    <p><strong>Overdue Tasks:</strong> ${reportData.overdue_tasks}</p>\n    <p><strong>Average Completion Time:</strong> ${reportData.average_completion_time} days</p>\n    <hr>\n    <h3>Tasks by Priority</h3>\n    <ul>\n      <li>High: ${reportData.tasks_by_priority.high}</li>\n      <li>Medium: ${reportData.tasks_by_priority.medium}</li>\n      <li>Low: ${reportData.tasks_by_priority.low}</li>\n    </ul>\n    <h3>Recent Completions</h3>\n    <p>Last 7 days: ${reportData.tasks_completed_7_days}</p>\n    <p>Last 30 days: ${reportData.tasks_completed_30_days}</p>\n  `;\n} else if (reportData.report_type === 'communication_report') {\n  emailContent = `\n    <h2>Communication Report</h2>\n    <p><strong>Total Messages:</strong> ${reportData.total_messages}</p>\n    <p><strong>Outbound Messages:</strong> ${reportData.outbound_messages}</p>\n    <p><strong>Inbound Messages:</strong> ${reportData.inbound_messages}</p>\n    <p><strong>Unique Clients Contacted:</strong> ${reportData.unique_clients_contacted}</p>\n    <p><strong>Average Response Time:</strong> ${reportData.average_response_time} hours</p>\n    <hr>\n    <h3>Messages by Type</h3>\n    <ul>\n      <li>Email: ${reportData.messages_by_type.email}</li>\n      <li>SMS: ${reportData.messages_by_type.sms}</li>\n      <li>Call: ${reportData.messages_by_type.call}</li>\n      <li>Meeting: ${reportData.messages_by_type.meeting}</li>\n    </ul>\n    <h3>Recent Activity</h3>\n    <p>Last 7 days: ${reportData.messages_7_days} messages</p>\n    <p>Last 30 days: ${reportData.messages_30_days} messages</p>\n  `;\n}\n\nreturn {\n  json: {\n    ...reportData,\n    email_content: emailContent,\n    email_subject: `CRM ${reportData.report_type.replace('_', ' ').toUpperCase()} - ${new Date().toLocaleDateString()}`\n  }\n};"
+      },
+      "id": "format-email-report",
+      "name": "Format Email Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook - Report Request').item.json.recipient_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "emailType": "html",
+        "message": "={{ $json.email_content }}<p><em>Report generated at: {{ $json.report_generated_at }}</em></p>",
+        "options": {}
+      },
+      "id": "send-email-report",
+      "name": "Send Email Report",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1560, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json, null, 2) }}",
+        "options": {}
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"error\": \"Invalid report type\",\n  \"message\": \"Report type must be 'client_summary', 'task_analytics', or 'communication_report'\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 800]
+    }
+  ],
+  "connections": {
+    "Webhook - Report Request": {
+      "main": [
+        [
+          {
+            "node": "Is Client Summary?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Task Analytics?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Communication Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Client Summary?": {
+      "main": [
+        [
+          {
+            "node": "Get All Clients",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Task Analytics?": {
+      "main": [
+        [
+          {
+            "node": "Get All Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Communication Report?": {
+      "main": [
+        [
+          {
+            "node": "Get All Messages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Clients": {
+      "main": [
+        [
+          {
+            "node": "Calculate Client Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Client Statistics": {
+      "main": [
+        [
+          {
+            "node": "Should Email Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Tasks": {
+      "main": [
+        [
+          {
+            "node": "Calculate Task Analytics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Task Analytics": {
+      "main": [
+        [
+          {
+            "node": "Should Email Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Messages": {
+      "main": [
+        [
+          {
+            "node": "Calculate Communication Stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Communication Stats": {
+      "main": [
+        [
+          {
+            "node": "Should Email Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Email Report?": {
+      "main": [
+        [
+          {
+            "node": "Format Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Email Report": {
+      "main": [
+        [
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Report": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-31T12:00:00.000Z",
+      "updatedAt": "2024-12-31T12:00:00.000Z",
+      "id": "crm-workflows",
+      "name": "CRM Workflows"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-31T12:00:00.000Z",
+  "versionId": "1"
+}

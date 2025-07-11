@@ -1,0 +1,753 @@
+{
+  "name": "CRM - Task Management Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task-management",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "rawBody": false
+        }
+      },
+      "credentials": {
+        "headerAuth": {
+          "id": "HEADER_AUTH_CREDENTIAL_ID",
+          "name": "CRM-Webhook-Auth"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Task Management",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "task-management-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "create",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-action-create",
+      "name": "Is Create Task?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "update",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-action-update",
+      "name": "Is Update Task?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "resource": "Row",
+        "operation": "Create",
+        "table": {
+          "__rl": true,
+          "value": "tasks",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $json.title }}",
+            "description": "={{ $json.description || '' }}",
+            "status": "={{ $json.status || 'pending' }}",
+            "priority": "={{ $json.priority || 'medium' }}",
+            "client_id": "={{ $json.client_id || null }}",
+            "assigned_to": "={{ $json.assigned_to || null }}",
+            "due_date": "={{ $json.due_date || null }}",
+            "created_by": "={{ $json.created_by || null }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "create-task",
+      "name": "Create New Task",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Row",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "clients",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": [
+          {
+            "column": "id",
+            "value": "={{ $('Create New Task').item.json.client_id }}"
+          }
+        ],
+        "options": {}
+      },
+      "id": "get-client-for-new-task",
+      "name": "Get Client for New Task",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1120, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get Client for New Task').item.json.email }}",
+        "subject": "=New Task: {{ $('Create New Task').item.json.title }}",
+        "emailType": "html",
+        "message": "=<h2>New Task Assigned</h2>\n<p>Dear {{ $('Get Client for New Task').item.json.name }},</p>\n<p>A new task has been created for you:</p>\n<p><strong>{{ $('Create New Task').item.json.title }}</strong></p>\n<p>{{ $('Create New Task').item.json.description }}</p>\n<p><strong>Priority:</strong> {{ $('Create New Task').item.json.priority }}</p>\n<p><strong>Due Date:</strong> {{ $('Create New Task').item.json.due_date ? new Date($('Create New Task').item.json.due_date).toLocaleDateString() : 'Not specified' }}</p>\n<p>We will keep you updated on the progress of this task.</p>\n<p>Best regards,<br>The Team</p>",
+        "options": {}
+      },
+      "id": "notify-client-new-task",
+      "name": "Notify Client of New Task",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1340, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Row",
+        "operation": "update",
+        "table": {
+          "__rl": true,
+          "value": "tasks",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": [
+          {
+            "column": "id",
+            "value": "={{ $json.task_id }}"
+          }
+        ],
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "title": "={{ $json.title || undefined }}",
+            "description": "={{ $json.description || undefined }}",
+            "status": "={{ $json.status || undefined }}",
+            "priority": "={{ $json.priority || undefined }}",
+            "assigned_to": "={{ $json.assigned_to || undefined }}",
+            "due_date": "={{ $json.due_date || undefined }}",
+            "updated_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "update-task",
+      "name": "Update Existing Task",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Row",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "tasks",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": [
+          {
+            "column": "id",
+            "value": "={{ $json.task_id }}"
+          }
+        ],
+        "options": {}
+      },
+      "id": "get-updated-task",
+      "name": "Get Updated Task Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.assigned_to }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-assignment",
+      "name": "Has Assignment?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.send_to_client }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "leftValue": "={{ $json.client_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-send-to-client",
+      "name": "Send to Client?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Get Updated Task Details').item.json.assigned_to }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-update-assignment",
+      "name": "Has Updated Assignment?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "resource": "Row",
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "notifications",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "type": "task_assigned",
+            "title": "New Task Assigned",
+            "message": "=You have been assigned a new task: {{ $('Create New Task').item.json.title }}",
+            "recipient_id": "={{ $('Create New Task').item.json.assigned_to }}",
+            "data": "={{ JSON.stringify({task_id: $('Create New Task').item.json.id, task_title: $('Create New Task').item.json.title, priority: $('Create New Task').item.json.priority}) }}",
+            "is_read": false
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "notify-assignee-new",
+      "name": "Notify New Assignee",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1120, 100],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Row",
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "notifications",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "type": "task_updated",
+            "title": "Task Updated",
+            "message": "=Task has been updated: {{ $('Get Updated Task Details').item.json.title }}",
+            "recipient_id": "={{ $('Get Updated Task Details').item.json.assigned_to }}",
+            "data": "={{ JSON.stringify({task_id: $('Get Updated Task Details').item.json.id, task_title: $('Get Updated Task Details').item.json.title, status: $('Get Updated Task Details').item.json.status}) }}",
+            "is_read": false
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "notify-assignee-update",
+      "name": "Notify Updated Assignee",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Get Updated Task Details').item.json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-completion",
+      "name": "Is Task Completed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "resource": "Row",
+        "operation": "get",
+        "table": {
+          "__rl": true,
+          "value": "clients",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": [
+          {
+            "column": "id",
+            "value": "={{ $('Get Updated Task Details').item.json.client_id }}"
+          }
+        ],
+        "options": {}
+      },
+      "id": "get-client-info",
+      "name": "Get Client Info",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1780, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase CRM"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Get Client Info').item.json.email }}",
+        "subject": "=Task Completed: {{ $('Get Updated Task Details').item.json.title }}",
+        "emailType": "html",
+        "message": "=<h2>Task Update</h2>\n<p>Dear {{ $('Get Client Info').item.json.name }},</p>\n<p>We're pleased to inform you that the following task has been completed:</p>\n<p><strong>{{ $('Get Updated Task Details').item.json.title }}</strong></p>\n<p>{{ $('Get Updated Task Details').item.json.description }}</p>\n<p>If you have any questions or need further assistance, please don't hesitate to contact us.</p>\n<p>Best regards,<br>The Marketing Team</p>",
+        "options": {}
+      },
+      "id": "notify-client-completion",
+      "name": "Notify Client of Completion",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [2000, 200],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Task {{ $json.action }} completed successfully\",\n  \"task_id\": \"{{ $json.action === 'create' ? $('Create New Task').item.json.id : $('Get Updated Task Details').item.json.id }}\"\n}",
+        "options": {}
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2220, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": false,\n  \"error\": \"Invalid action specified\",\n  \"message\": \"Action must be 'create' or 'update'\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 600]
+    }
+  ],
+  "connections": {
+    "Webhook - Task Management": {
+      "main": [
+        [
+          {
+            "node": "Is Create Task?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Update Task?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Create Task?": {
+      "main": [
+        [
+          {
+            "node": "Create New Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Update Task?": {
+      "main": [
+        [
+          {
+            "node": "Update Existing Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create New Task": {
+      "main": [
+        [
+          {
+            "node": "Has Assignment?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Client?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Existing Task": {
+      "main": [
+        [
+          {
+            "node": "Get Updated Task Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Updated Task Details": {
+      "main": [
+        [
+          {
+            "node": "Has Updated Assignment?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Assignment?": {
+      "main": [
+        [
+          {
+            "node": "Notify New Assignee",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Updated Assignment?": {
+      "main": [
+        [
+          {
+            "node": "Notify Updated Assignee",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify New Assignee": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Updated Assignee": {
+      "main": [
+        [
+          {
+            "node": "Is Task Completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Task Completed?": {
+      "main": [
+        [
+          {
+            "node": "Get Client Info",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Client Info": {
+      "main": [
+        [
+          {
+            "node": "Notify Client of Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Client?": {
+      "main": [
+        [
+          {
+            "node": "Get Client for New Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Get Client for New Task": {
+      "main": [
+        [
+          {
+            "node": "Notify Client of New Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Client of New Task": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Client of Completion": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-12-31T12:00:00.000Z",
+      "updatedAt": "2024-12-31T12:00:00.000Z",
+      "id": "crm-workflows",
+      "name": "CRM Workflows"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-31T12:00:00.000Z",
+  "versionId": "1"
+}
