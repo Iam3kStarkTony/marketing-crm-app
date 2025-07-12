@@ -4,6 +4,7 @@ import { Searchbar, IconButton, Avatar, Text } from 'react-native-paper'
 import { useTheme } from '../../contexts/ThemeContext'
 import DashboardScreen from './DashboardScreen'
 import FixedSidebarLayout from '../../components/FixedSidebarLayout'
+import { useNavigation, useNavigationState } from '@react-navigation/native'
 
 interface DashboardScreenWrapperProps {
   navigation: any
@@ -12,6 +13,7 @@ interface DashboardScreenWrapperProps {
 
 const DashboardScreenWrapper: React.FC<DashboardScreenWrapperProps> = ({ navigation, route }) => {
   const { theme } = useTheme()
+  const navigationState = useNavigationState(state => state)
 
   const headerContent = (
     <View style={{
@@ -58,12 +60,12 @@ const DashboardScreenWrapper: React.FC<DashboardScreenWrapperProps> = ({ navigat
         }}>
           <Avatar.Text size={32} label="TM" style={{ backgroundColor: theme.colors.primary }} />
           <View style={{ marginLeft: 8 }}>
-            <Text style={{
+            <Text variant="titleMedium" style={{
               fontSize: 14,
               fontWeight: '600',
               color: theme.colors.onSurface,
             }}>Totok Michael</Text>
-            <Text style={{
+            <Text variant="bodySmall" style={{
               fontSize: 12,
               color: theme.colors.onSurfaceVariant,
             }}>tmichael20@email.com</Text>
@@ -77,11 +79,11 @@ const DashboardScreenWrapper: React.FC<DashboardScreenWrapperProps> = ({ navigat
     <>
       <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
       <FixedSidebarLayout 
-        navigation={navigation} 
-        navigationState={route} 
         header={headerContent}
+        navigation={navigation}
+        navigationState={navigationState}
       >
-        <DashboardScreen />
+        <DashboardScreen navigation={navigation} route={route} />
       </FixedSidebarLayout>
     </>
   )

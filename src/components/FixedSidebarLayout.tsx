@@ -7,12 +7,12 @@ import { useNavigation, useNavigationState } from '@react-navigation/native';
 interface FixedSidebarLayoutProps {
   children: React.ReactNode;
   header?: React.ReactNode;
+  navigation: any;
+  navigationState: any;
 }
 
-const FixedSidebarLayout: React.FC<FixedSidebarLayoutProps> = ({ children, header }) => {
+const FixedSidebarLayout: React.FC<FixedSidebarLayoutProps> = ({ children, header, navigation, navigationState }) => {
   const { theme } = useTheme();
-  const navigation = useNavigation();
-  const navigationState = useNavigationState(state => state);
   const { width } = Dimensions.get('window');
   
   const sidebarWidth = 280;

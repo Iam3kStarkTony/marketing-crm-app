@@ -30,6 +30,16 @@ import { supabase } from '../../services/supabase'
 import { TaskWithRelations } from '../../types/database'
 import { QueryManager } from '../../utils/queryManager'
 import { ErrorHandler } from '../../utils/errorHandler'
+import { taskStatsService, TaskStats } from '../../services/taskStatsService'
+
+// Import dashboard components
+import ProjectStats from './components/ProjectStats'
+import ProjectAnalytics from './components/ProjectAnalytics'
+import ProjectProgress from './components/ProjectProgress'
+import Reminders from './components/Reminders'
+import ProjectList from './components/ProjectList'
+import TeamCollaboration from './components/TeamCollaboration'
+import TimeTracker from './components/TimeTracker'
 
 type TimePeriod = '30d' | '90d' | '6m' | '1y'
 
@@ -63,6 +73,8 @@ export default function DashboardScreen() {
     total: 0,
     completionPercentage: 0
   })
+  const [taskStats, setTaskStats] = useState<TaskStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
   
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -184,6 +196,23 @@ export default function DashboardScreen() {
     }
   }, [user])
 
+  const loadTaskStats = useCallback(async () => {
+    if (!user) return
+    
+    try {
+      setStatsLoading(true)
+      const stats = await taskStatsService.fetchTaskStatsWithRetry()
+      setTaskStats(stats)
+    } catch (error) {
+      ErrorHandler.logError(error as Error, { 
+        operation: 'loadTaskStats', 
+        userId: user.id 
+      })
+    } finally {
+      setStatsLoading(false)
+    }
+  }, [user])
+
   const loadDashboardData = useCallback(async () => {
     if (!user) return
     
@@ -193,7 +222,8 @@ export default function DashboardScreen() {
         loadTasks(),
         loadClients(),
         loadTomorrowTasks(),
-        calculateTaskProgress()
+        calculateTaskProgress(),
+        loadTaskStats()
       ])
     } catch (error) {
       console.error('Error loading dashboard data:', error)
@@ -201,7 +231,7 @@ export default function DashboardScreen() {
     } finally {
       setLoading(false)
     }
-  }, [loadTasks, loadClients, loadTomorrowTasks, calculateTaskProgress])
+  }, [loadTasks, loadClients, loadTomorrowTasks, calculateTaskProgress, loadTaskStats])
 
   const refresh = useCallback(async () => {
     setRefreshing(true)
@@ -241,6 +271,7 @@ export default function DashboardScreen() {
   return (
     <ScrollView
       style={styles.container}
+      contentContainerStyle={{ flexGrow: 1 }}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -249,97 +280,67 @@ export default function DashboardScreen() {
         />
       }
     >
-      {/* Task Summary */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Task Summary</Title>
-          <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-            Completed: {taskProgress.completed} | In Progress: {taskProgress.inProgress} | Pending: {taskProgress.pending}
-          </Text>
-          <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-            Progress: {taskProgress.completionPercentage.toFixed(1)}% Complete
-          </Text>
-          <ProgressBar 
-            progress={taskProgress.completionPercentage / 100} 
-            color={theme.colors.primary}
-            style={styles.progressBar}
-          />
-        </Card.Content>
-      </Card>
-
-      {/* Recent Tasks */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Recent Tasks</Title>
-          {filteredTasks.length > 0 ? (
-            filteredTasks.slice(0, 5).map((task) => (
-              <View key={task.id} style={styles.taskItem}>
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskStatus}>Status: {task.status}</Text>
-                {task.due_date && (
-                  <Text style={styles.taskDueDate}>
-                    Due: {new Date(task.due_date).toLocaleDateString()}
-                  </Text>
-                )}
-              </View>
-            ))
-          ) : (
-            <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-              No recent tasks found.
-            </Text>
-          )}
+      <View style={styles.headerContainer}>
+        <Text style={styles.dashboardTitle}>Dashboard</Text>
+        <Text style={styles.dashboardSubtitle}>Plan, prioritize, and accomplish your tasks with ease.</Text>
+        
+        <View style={styles.actionButtons}>
+          <Button 
+            mode="contained" 
+            icon="plus"
+            style={styles.addProjectButton}
+            labelStyle={styles.buttonLabel}
+            onPress={() => console.log('Add Project')}
+          >
+            Add Project
+          </Button>
+          
           <Button 
             mode="outlined" 
-            onPress={() => navigation.navigate('Tasks' as never)}
-            style={styles.button}
+            style={styles.importButton}
+            labelStyle={styles.importButtonLabel}
+            onPress={() => console.log('Import Data')}
           >
-            View All Tasks
+            Import Data
           </Button>
-        </Card.Content>
-      </Card>
-
-      {/* Tomorrow's Tasks */}
-      {tomorrowTasks.length > 0 && (
-        <Card style={styles.card}>
-          <Card.Content>
-            <Title>Tomorrow's Tasks</Title>
-            {tomorrowTasks.map((task) => (
-              <View key={task.id} style={styles.taskItem}>
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskTime}>
-                  {new Date(task.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              </View>
-            ))}
-          </Card.Content>
-        </Card>
-      )}
-
-      {/* Recent Clients */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Recent Clients</Title>
-          {clients.length > 0 ? (
-            clients.slice(0, 5).map((client) => (
-              <View key={client.id} style={styles.clientItem}>
-                <Text style={styles.clientName}>{client.full_name}</Text>
-                <Text style={styles.clientEmail}>{client.email}</Text>
-              </View>
-            ))
-          ) : (
-            <Text style={[styles.description, { color: theme.colors.onSurfaceVariant }]}>
-              No recent clients found.
-            </Text>
-          )}
-          <Button 
-            mode="outlined" 
-            onPress={() => navigation.navigate('Clients' as never)}
-            style={styles.button}
-          >
-            View All Clients
-          </Button>
-        </Card.Content>
-      </Card>
+        </View>
+      </View>
+      
+      {/* First Row: Project Statistics */}
+      <ProjectStats loading={loading} />
+      
+      {/* Second Row: Two Columns Layout */}
+      <View style={styles.twoColumnContainer}>
+        {/* Left Column */}
+        <View style={styles.leftColumn}>
+          {/* Left Column - First Row */}
+          <View style={styles.leftColumnTopRow}>
+            {/* Project Analytics */}
+            <ProjectAnalytics loading={loading} />
+            
+            {/* Reminders */}
+            <Reminders loading={loading} />
+          </View>
+          
+          {/* Left Column - Second Row */}
+          <View style={styles.leftColumnBottomRow}>
+            {/* Team Collaboration */}
+            <TeamCollaboration loading={loading} />
+            
+            {/* Project Progress */}
+            <ProjectProgress loading={loading} />
+          </View>
+        </View>
+        
+        {/* Right Column */}
+        <View style={styles.rightColumn}>
+          {/* Project List */}
+          <ProjectList loading={loading} />
+          
+          {/* Time Tracker */}
+          <TimeTracker loading={loading} />
+        </View>
+      </View>
     </ScrollView>
   )
 }
@@ -360,7 +361,7 @@ const getStatusColor = (status: string) => {
 const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#F5F7F9',
   },
   loadingContainer: {
     flex: 1,
@@ -372,6 +373,79 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginTop: 16,
     color: theme.colors.onSurface,
   },
+  headerContainer: {
+    backgroundColor: '#F5F7F9',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  dashboardTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  dashboardSubtitle: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 4,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  addProjectButton: {
+    backgroundColor: '#1A8D1A', // Darker green color to match the reference
+    borderRadius: 20, // More rounded corners
+    flex: 1,
+    marginRight: 8,
+  },
+  importButton: {
+    borderColor: '#CCCCCC',
+    borderRadius: 20, // More rounded corners to match Add Project button
+    flex: 1,
+    marginLeft: 8,
+    backgroundColor: 'white',
+  },
+  buttonLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
+  },
+  importButtonLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.onSurface,
+  },
+  twoColumnContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    marginTop: 16,
+    flex: 1,
+  },
+  leftColumn: {
+    flex: 2, // Left column takes 2/3 of the space
+    marginRight: 12,
+  },
+  rightColumn: {
+    flex: 1, // Right column takes 1/3 of the space
+    marginLeft: 12,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+  leftColumnTopRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    height: 'auto',
+    justifyContent: 'space-between',
+  },
+  leftColumnBottomRow: {
+    flexDirection: 'row',
+    height: 'auto',
+    justifyContent: 'space-between',
+  },
+  // Keep these styles for backward compatibility
   card: {
     margin: 16,
   },
@@ -383,6 +457,10 @@ const createStyles = (theme: any) => StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginTop: 8,
+  },
+  progressSection: {
+    marginTop: 16,
+    marginBottom: 16,
   },
   taskItem: {
     paddingVertical: 8,

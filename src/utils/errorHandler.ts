@@ -17,7 +17,7 @@ export interface ErrorInfo {
   userFriendlyMessage: string
   isRetryable: boolean
   severity: 'low' | 'medium' | 'high' | 'critical'
-  category: 'network' | 'timeout' | 'auth' | 'validation' | 'unknown'
+  category: 'network' | 'timeout' | 'auth' | 'validation' | 'database' | 'rls' | 'unknown'
 }
 
 export class ErrorHandler {
@@ -62,14 +62,14 @@ export class ErrorHandler {
     // Track error in analytics (non-blocking)
     try {
       if (context.userId) {
-        await AnalyticsService.trackEvent(context.userId, 'error_occurred', {
+        await AnalyticsService.trackEvent('error_occurred', {
           error_message: error.message,
           error_category: errorInfo.category,
           error_severity: errorInfo.severity,
           screen: context.screen,
           operation: context.operation,
           ...context.metadata
-        })
+        }, context.userId)
       }
     } catch (analyticsError) {
       console.warn('Failed to track error in analytics:', analyticsError)
